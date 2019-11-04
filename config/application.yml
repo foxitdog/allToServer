@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: busGateway
+  profiles:
+    active: dev

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="error" strict="true" name="LogFile" monitorInterval="30">
+    <Properties>
+        <Property name="logdir">D:/logs/</Property>
+        <Property name="project-name">alltoserver</Property>
+        <Property name="log-format">[%d] [%p]  [%t] [%m]%n</Property>
+        <Property name="deleteFileMaxDepth">5</Property>
+        <Property name="maxDay">5d</Property>
+    </Properties>
+    <Filter type="ThresholdFilter" level="info"/>
+
+    <Appenders>
+        <Appender type="Console" name="console">
+            <Layout type="PatternLayout"
+                    pattern="[%p] [%d{yyyy/MM/dd HH:mm:ssS}] [%c] %m%n"/>
+        </Appender>
+        <Async name="Async" bufferSize="4096">
+            <AppenderRef ref="console"/>
+            <AppenderRef ref="all"/>
+        </Async>
+        <RollingRandomAccessFile name="all"
+                                 fileName="${logdir}${project-name}/applog.log"
+                                 filePattern="${logdir}${project-name}/all-$${date:yyyyMMdd}/%d{MM-dd-yyyy}-%i.log.gz">
+            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout alwaysWriteExceptions="false" >
+                <Pattern>${log-format}</Pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="20 MB"/>
+                <CronTriggeringPolicy schedule="0 0 0/12 * * ?" ></CronTriggeringPolicy>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="${logdir}${project-name}" maxDepth="${deleteFileMaxDepth}">
+                    <IfLastModified age="${maxDay}" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
+    </Appenders>
+
+    <Loggers>
+
+        <Logger name="io.github.foxitdog" level="debug" additivity="false">
+            <AppenderRef ref="Async"/>
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="Async"/>
+        </Root>
+    </Loggers>
+</Configuration>

@@ -1,0 +1,12 @@
+server.port: 8080
+                   #spring.resources.static-locations的默认值是classpath:/static,classpath:/public,classpath:/resources,classpath:/META-INF/resources,servlet context:/
+logging:
+  config: config/log4j2.xml
+
+setting:
+  threadpool:
+    num: 10
+  netty:
+    server:
+      host: localhost
+      port: 8899
