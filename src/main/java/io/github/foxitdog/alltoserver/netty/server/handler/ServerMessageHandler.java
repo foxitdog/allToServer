@@ -24,15 +24,17 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
     @Autowired
     ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
-    public long timestamp = 0;
+    private long timestamp = 0;
 
-    ScheduledFuture sf;
+    private ScheduledFuture sf;
 
-    String servername;
+    private String servername;
 
-    ChannelHandlerContext ctx;
+    private ChannelHandlerContext ctx;
 
     static ConcurrentHashMap<Integer, LinkObject> linkMap = new ConcurrentHashMap<>();
+
+    private boolean init;
 
     /**
      * 新的TCP建立回调函数
@@ -56,6 +58,9 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
 
     @Override
     public void channelInactive(ChannelHandlerContext channelHandlerContext) {
+        if (init){
+            Constants.channelTable.remove(servername);
+        }
         log.info("TCP连接已断开:" + channelHandlerContext + ",remoteAddress:" + channelHandlerContext.channel().remoteAddress().toString());
         sf.cancel(true);
     }
@@ -70,10 +75,10 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
         if (type == null) {
             return;
         }
-        if (type.equals("request")) {
+        if ("request".equals(type)) {
             // 暂时不需要实现
         }
-        if (type.equals("response")) {
+        if ("response".equals(type)) {
             int linksum = msg.getIntValue("linksum");
             LinkObject linkObject = linkMap.get(linksum);
             if (linkObject == null) {
@@ -87,7 +92,7 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
             }
             return;
         }
-        if (type.equals("inner")) {
+        if ("inner".equals(type)) {
             JSONObject jo = msg.getJSONObject("data");
             type = jo.getString("type");
             if ("init".equals(type)) {
@@ -104,6 +109,7 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
                     writeInternalException("初始化失败，已经有相关服务注册");
                     ctx.close();
                 }else{
+                    init=true;
                     log.info("服务："+servername+" 初始化成功");
                 }
                 return;
@@ -117,23 +123,23 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
     }
 
 
-    public void writeInternalException(String msg) {
+    private void writeInternalException(String msg) {
         writeException(ErrorCode.INTERNAL_EXCEPTION, msg);
     }
 
-    public void writeException(int code, String msg) {
+    private void writeException(int code, String msg) {
         JSONObject exception = Common.getJSONObject("type", "inner", "data", Common.getJSONObject("type", "exception", "code", code, "msg", msg));
         ctx.writeAndFlush(exception);
     }
 
-    static AtomicInteger vint = new AtomicInteger();
+    private static AtomicInteger vint = new AtomicInteger();
 
     /**
      * 获取非0数
      *
      * @return
      */
-    public int getlinksum() {
+    private int getlinksum() {
         int linksum = vint.addAndGet(1);
         if (linksum == 0) {
             return getlinksum();
@@ -151,7 +157,7 @@ public class ServerMessageHandler extends SimpleChannelInboundHandler<JSONObject
     public JSONObject sendForResult(JSONObject message) {
         int linksum = getlinksum();
         JSONObject meta = message.getJSONObject("meta");
-        int outTime = 60 * 1000;;
+        int outTime = 60 * 1000;
         if (meta!=null){
             outTime = meta.getIntValue("outTime");
             if (outTime <= 0) {
